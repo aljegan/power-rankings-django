@@ -11,21 +11,31 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import environ
+import os
+import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(str, "127.0.0.1"),
+    DATABASE_ENGINE=(str, "django.db.backends.postgresql"),
+    DATABASE_HOST=(str, "127.0.0.1"),
+    DATABASE_OPTIONS=(str, "{}"),
+)
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-xt6+%i^yxa4@%6=qk4=eenu4&lym52ea16-)b8vluc(sd#h!e("
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS").split(",")
 
 
 # Application definition
@@ -76,12 +86,13 @@ WSGI_APPLICATION = "power_rankings.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "dev",
-        "USER": "postgresUser",
-        "PASSWORD": "postgresPW",
-        "HOST": "127.0.0.1",
-        "PORT": "5433",
+        "ENGINE": env("DATABASE_ENGINE"),
+        "NAME": env("DATABASE_NAME"),
+        "USER": env("DATABASE_USERNAME"),
+        "PASSWORD": env("DATABASE_PASSWORD"),
+        "HOST": env("DATABASE_HOST"),
+        "PORT": env("DATABASE_PORT"),
+        "OPTIONS": json.loads(env("DATABASE_OPTIONS")),
     }
 }
 
