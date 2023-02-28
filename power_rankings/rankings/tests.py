@@ -11,11 +11,15 @@ from unittest.mock import patch
 PUB_DATE = make_aware(datetime.utcnow(), timezone=pytz.timezone("UTC"))
 
 
+def create_player(player_name: str, ranking: float):
+    Player.objects.create(player_name=player_name, ranking=ranking)
+
+
 class MatchModelTests(TestCase):
     def setUp(self):
-        Player.objects.create(player_name="player1", ranking=800.0)
-        Player.objects.create(player_name="player2", ranking=800.0)
-        Player.objects.create(player_name="player3", ranking=800.0)
+        create_player(player_name="player1", ranking=800.0)
+        create_player(player_name="player2", ranking=800.0)
+        create_player(player_name="player3", ranking=800.0)
 
     def tearDown(self):
         Match.objects.all().delete()
