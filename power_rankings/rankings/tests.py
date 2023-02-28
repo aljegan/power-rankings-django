@@ -1,5 +1,6 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from datetime import datetime
+from django.contrib.auth.models import User
 from .models import Match, Player
 from .utils import calculate_elo_win_probabilities, calculate_new_rankings
 from django.utils.timezone import make_aware
@@ -12,7 +13,7 @@ PUB_DATE = make_aware(datetime.utcnow(), timezone=pytz.timezone("UTC"))
 
 
 def create_player(player_name: str, ranking: float):
-    Player.objects.create(player_name=player_name, ranking=ranking)
+    return Player.objects.create(player_name=player_name, ranking=ranking)
 
 
 class MatchModelTests(TestCase):
@@ -20,10 +21,6 @@ class MatchModelTests(TestCase):
         create_player(player_name="player1", ranking=800.0)
         create_player(player_name="player2", ranking=800.0)
         create_player(player_name="player3", ranking=800.0)
-
-    def tearDown(self):
-        Match.objects.all().delete()
-        Player.objects.all().delete()
 
     def test_string(self):
         player1 = Player.objects.get(player_name="player1")
@@ -151,10 +148,7 @@ class MatchModelTests(TestCase):
 
 class PlayerModelTests(TestCase):
     def setUp(self):
-        Player.objects.create(player_name="player1", ranking=800.0)
-
-    def tearDown(self):
-        Player.objects.all().delete()
+        create_player(player_name="player1", ranking=800.0)
 
     def test_string(self):
         player1 = Player.objects.get(player_name="player1")
@@ -199,3 +193,23 @@ class UtilsTests(TestCase):
         difference_400 = calculate_new_rankings(1000, 600, False)
         self.assertAlmostEqual(difference_400[0], 1000 - (0.9091 * 20), 1)
         self.assertAlmostEqual(difference_400[0] + difference_400[1], 1600)
+
+
+class AdminViewTests(TestCase):
+    def setUp(self):
+        self.password = "test_password"
+        self.admin = User.objects.create_superuser(
+            "test_admin", "test@example.com", self.password
+        )
+
+    def test_admin_can_see_player_view(self):
+        client = Client()
+        client.login(username=self.admin.username, password=self.password)
+        response = client.get(f"/admin/rankings/player/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_can_see_match_view(self):
+        client = Client()
+        client.login(username=self.admin.username, password=self.password)
+        response = client.get(f"/admin/rankings/match/")
+        self.assertEqual(response.status_code, 200)
