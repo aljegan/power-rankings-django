@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from .utils import calculate_new_rankings
 
 
 class Player(models.Model):
@@ -32,6 +33,18 @@ class Match(models.Model):
     def clean(self):
         if self.winner is not None and self.winner not in (self.player1, self.player2):
             raise ValidationError("winner must be one of the players in the match!")
+
+    def save(self, *args, **kwargs):
+        player1_wins = self.winner == self.player1 if self.winner is not None else None
+        player1_new_ranking, player2_new_ranking = calculate_new_rankings(
+            self.player1.ranking, self.player2.ranking, winner_is_1=player1_wins
+        )
+
+        self.player1.ranking = player1_new_ranking
+        self.player2.ranking = player2_new_ranking
+        self.player1.save()
+        self.player2.save()
+        super(Match, self).save(*args, **kwargs)
 
     def __str__(self):
         winner = str(self.winner) if self.winner is not None else "TIE"

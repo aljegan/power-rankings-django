@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 
-K = 400
+K = 20
 
 
 def calculate_new_rankings(
@@ -38,4 +38,4 @@ def calculate_elo_win_probabilities(
 
 
 def _exponentiate(ranking: float) -> float:
-    return 10 ** (ranking / K)
+    return 10 ** (ranking / 400)

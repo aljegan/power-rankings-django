@@ -5,6 +5,7 @@ from .utils import calculate_elo_win_probabilities, calculate_new_rankings
 from django.utils.timezone import make_aware
 import pytz
 from django.core.exceptions import ValidationError
+from unittest.mock import patch
 
 
 PUB_DATE = make_aware(datetime.utcnow(), timezone=pytz.timezone("UTC"))
@@ -46,9 +47,7 @@ class TestMatchModel(TestCase):
             pub_date=PUB_DATE,
         )
         match.id = 42
-        self.assertEqual(
-            str(match), f"42: {str(player1)} <> {str(player2)} (TIE)"
-        )
+        self.assertEqual(str(match), f"42: {str(player1)} <> {str(player2)} (TIE)")
 
     def test_winner_not_involved_in_match_raises_exception(self):
         player1 = Player.objects.get(player_name="player1")
@@ -65,6 +64,72 @@ class TestMatchModel(TestCase):
             ValidationError,
             match.clean,
         )
+
+    @patch("rankings.models.calculate_new_rankings")
+    def test_player_rankings_change_based_on_outcome_player1_wins(
+        self, mock_calculate_new_rankings
+    ):
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+        match = Match(
+            player1=player1,
+            player2=player2,
+            winner=player1,
+            pub_date=PUB_DATE,
+        )
+
+        mock_calculate_new_rankings.return_value = (850.0, 750.0)
+        match.save()
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+
+        self.assertAlmostEqual(player1.ranking, 850.0)
+        self.assertAlmostEqual(player2.ranking, 750.0)
+        mock_calculate_new_rankings.assert_called_with(800.0, 800.0, winner_is_1=True)
+
+    @patch("rankings.models.calculate_new_rankings")
+    def test_player_rankings_change_based_on_outcome_player2_wins(
+        self, mock_calculate_new_rankings
+    ):
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+        match = Match(
+            player1=player1,
+            player2=player2,
+            winner=player2,
+            pub_date=PUB_DATE,
+        )
+
+        mock_calculate_new_rankings.return_value = (850.0, 750.0)
+        match.save()
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+
+        self.assertAlmostEqual(player1.ranking, 850.0)
+        self.assertAlmostEqual(player2.ranking, 750.0)
+        mock_calculate_new_rankings.assert_called_with(800.0, 800.0, winner_is_1=False)
+
+    @patch("rankings.models.calculate_new_rankings")
+    def test_player_rankings_change_based_on_outcome_tie(
+        self, mock_calculate_new_rankings
+    ):
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+        match = Match(
+            player1=player1,
+            player2=player2,
+            winner=None,
+            pub_date=PUB_DATE,
+        )
+
+        mock_calculate_new_rankings.return_value = (850.0, 750.0)
+        match.save()
+        player1 = Player.objects.get(player_name="player1")
+        player2 = Player.objects.get(player_name="player2")
+
+        self.assertAlmostEqual(player1.ranking, 850.0)
+        self.assertAlmostEqual(player2.ranking, 750.0)
+        mock_calculate_new_rankings.assert_called_with(800.0, 800.0, winner_is_1=None)
 
     def test_winner_can_be_none(self):
         player1 = Player.objects.get(player_name="player1")
@@ -124,9 +189,9 @@ class TestUtils(TestCase):
         self.assertAlmostEqual(ratings_a[1] + 500, ratings_b[1])
 
         difference_100 = calculate_new_rankings(1000, 900, True)
-        self.assertAlmostEqual(difference_100[0], (1 - 0.6401) * 400 + 1000, 1)
+        self.assertAlmostEqual(difference_100[0], (1 - 0.6401) * 20 + 1000, 1)
         self.assertAlmostEqual(difference_100[0] + difference_100[1], 1900)
 
         difference_400 = calculate_new_rankings(1000, 600, False)
-        self.assertAlmostEqual(difference_400[0], 1000 - (0.9091 * 400), 1)
+        self.assertAlmostEqual(difference_400[0], 1000 - (0.9091 * 20), 1)
         self.assertAlmostEqual(difference_400[0] + difference_400[1], 1600)
