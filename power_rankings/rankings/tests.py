@@ -11,7 +11,7 @@ from unittest.mock import patch
 PUB_DATE = make_aware(datetime.utcnow(), timezone=pytz.timezone("UTC"))
 
 
-class TestMatchModel(TestCase):
+class MatchModelTests(TestCase):
     def setUp(self):
         Player.objects.create(player_name="player1", ranking=800.0)
         Player.objects.create(player_name="player2", ranking=800.0)
@@ -145,7 +145,7 @@ class TestMatchModel(TestCase):
         match.save()
 
 
-class TestPlayerModel(TestCase):
+class PlayerModelTests(TestCase):
     def setUp(self):
         Player.objects.create(player_name="player1", ranking=800.0)
 
@@ -157,7 +157,7 @@ class TestPlayerModel(TestCase):
         self.assertEqual(str(player1), "player1")
 
 
-class TestUtils(TestCase):
+class UtilsTests(TestCase):
     def test_calculate_elo_win_probabilities(self):
         self.assertTupleEqual(
             calculate_elo_win_probabilities(1000.0, 1000.0), (0.5, 0.5)
